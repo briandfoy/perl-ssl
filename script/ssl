@@ -1,0 +1,5 @@
+#!perl
+
+use StupidStackLanguage;
+
+StupidStackLanguage->run_program( $ARGV[0] );
