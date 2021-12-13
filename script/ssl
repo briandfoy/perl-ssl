@@ -1,9 +1,119 @@
 #!perl
 use v5.34;
+use experimental qw(signatures);
+
+our $VERSION = 0.999;
+
+use Getopt::Long;
+
+my %opts;
+GetOptions(
+	"f|file=s"  => \$opts{file},
+	"verbose"   => \$opts{verbose},
+	"v|version" => \$opts{version},
+	"h|help"    => \$opts{help},
+	);
 
 use StupidStackLanguage;
 
+if( $opts{version} ) {
+	say "$0 (StupidStackLanguage) $VERSION";
+	exit;
+	}
+elsif( $opts{help} ) {
+	say <<"HELP";
+$0 [-h[elp] --v[ersion]] [-f[ile] program_file ] [ program ]
+
+	-f --file program_file
+	-h --help
+	--verbose
+	--version
+
+Synopsis:
+
+	# Show this message
+	% $0 -h
+	% $0 --help
+
+	# Show the version
+	% $0 -v
+	% $0 --version
+
+	# Run the program in a file
+	% $0 -f program.ssl
+	% $0 --file program.ssl
+
+	# Run the program on the command line
+	% $0 program_string
+
+	# Run with insane output
+	% env SSL_VERBOSE=1 $0 program_string
+	% $0 --verbose program_string
+
+Program commands:
+
+	a   push 0
+	b   pop
+	c   push difference of top two items ( [0] - [1] )
+	d   subtract 1 from [0]
+	e   push mod of top two items ( [0] % [1] )
+	f   interpret [0] as ASCII code number and output char
+	g   push sum of top two items ( [0] + [1] )
+	h   get number from input and push
+	i   add 1 to [0]
+	j   get char from input an push code number
+	k   if [0] is 0, skip next command
+	l   swap [0] and [1]
+	m   push product of top two items ( [0] * [1] )
+	n   if [0] and [1] are the same, push 1. Otherwise push 0.
+	o   pop the [0]th item
+	p   push quotient of top two items ( [0] / [1] )
+	q   duplicate [0] on the stack
+	r   push the size of the stack
+	s   swap [0] and [0]th items
+	t   if [0] is 0, jump to corresponding 'u' command
+	u   if [0] is not 0, jump back to corresponding 't' command
+	v   add 5 to [0]
+	w   subtract 5 from [0]
+	x   output [0]
+	y   clear stack
+	z   stop program
+
+HELP
+
+	exit;
+	}
+
+my $program;
+
+my $program = do {
+	if( $opts{file} ) {
+		die "File <$opts{file}> does not exist\n" unless -e $opts{file};
+		die "File <$opts{file}> is not readable\n" unless -r $opts{file};
+		read_file( $opts{file} );
+		}
+	elsif( defined $ARGV[0] ) { $ARGV[0] }
+	else {
+		die "No program!\n";
+		}
+	};
+
 StupidStackLanguage->run_program(
-	$ARGV[0],
-	verbose => $ENV{SSL_VERBOSE} // 0,
+	$program,
+	verbose => $opts{verbose} // $ENV{SSL_VERBOSE} // 0,
 	);
+
+sub read_file ( $file ) {
+	open my $fh, '<:encoding(UTF-8)', $file
+		or die "Could not read file <$file>: $!\n";
+
+	my $program;
+	while( <$fh> ) {
+		chomp;
+		s/\s+//g;
+		s/#.*//;
+		$program .= $_;
+		}
+
+	$program;
+	}
