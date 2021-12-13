@@ -35,6 +35,7 @@ sub exit ( $p, $code = 0 ) {
 	$p->verbose( $p->_stack->dump );
 	}
 
+
 sub fh       ( $p ) { $p->{fh}       }
 sub err_fh   ( $p ) { $p->{err_fh}   }
 sub input_fh ( $p ) { $p->{input_fh} }
@@ -65,17 +66,26 @@ sub get_operations ( $p ) {
 
 		't' => sub ( $p ) {
 			return unless $p->_stack->peek == 0;
+			my %seen;
+			$seen{t} = 1;
+			$seen{u} = 0;
 			while( ++$p->{cursor} ) {
-				last if 'u' eq $p->{program}[$p->{cursor}];
+				$seen{t}++ if $p->current_command_is('t');
+				$seen{u}++ if $p->current_command_is('u');
+				last if $p->current_command_is('u') && $seen{t} == $seen{u};
 				}
 			},
 		'u' => sub ( $p ) {
 			return if $p->_stack->peek == 0;
-			$p->verbose( "<u> sees " . $p->_stack->peek );
+			my %seen;
+			$seen{t} = 0;
+			$seen{u} = 1;
 			while( --$p->{cursor} ) {
-				last if 't' eq $p->{program}[$p->{cursor}];
+				$seen{t}++ if $p->current_command_is('t');
+				$seen{u}++ if $p->current_command_is('u');
+				last if $p->current_command_is('t') && $seen{t} == $seen{u};
 				}
-			$p->verbose( "next command is <" . $p->{program}[$p->{cursor}] . ">" );
+			$p->verbose( "next command is <" . $p->current_command . ">" );
 			},
 
 		'x' => sub ( $p ) { $p->output( $p->_stack->peek ) },
@@ -85,6 +95,9 @@ sub get_operations ( $p ) {
 	}
 
 sub is_verbose ( $p ) { $p->{verbose} }
+
+sub current_command ( $p ) { $p->{program}[ $p->{cursor} ] }
+sub current_command_is ( $p, $command ) { $command eq $p->current_command }
 
 sub output( $p, @args ) { print { $p->fh } @args }
 
@@ -123,17 +136,27 @@ sub run_program ( $class, $program, @opts ) {
 	$p->{program} = $p->parse( $program );
 
 	while(1) {
-		my $next_command = $p->{program}[ $p->{cursor} ];
-		last unless $next_command;
-		$p->run_command( $next_command );
+		last if $p->{stop};
+		my $current_command = $p->current_command;
+		last unless $current_command;
+		$p->verbose( $p->show_program );
+		$p->run_command( $current_command );
 		$p->{cursor}++;
 		}
 	}
 
+sub show_program ( $p ) {
+	my $pos = $p->{cursor};
+	my $program = join( '', $p->{program}->@* ) . "\n"
+		. ( ' ' x ($pos - 1) ) . "*\n";
+	}
+
+sub stop ( $p ) { $p->{stop} = 1 }
+
 sub verbose ( $p, $message ) {
 	return unless $p->is_verbose;
-	say { $p->err_fh } "!!! $message"
+	$message =~ s/^/!!! /gm;
+	say { $p->err_fh } $message
 	}
 
 1;
-sub stop ( $p ) { $p->{stop} = 1 }
