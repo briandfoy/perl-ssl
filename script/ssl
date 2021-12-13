@@ -1,4 +1,5 @@
 #!perl
+use v5.34;
 
 use StupidStackLanguage;
 
