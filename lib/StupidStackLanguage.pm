@@ -15,6 +15,8 @@ sub new ( $class, %args ) {
 		stop         => 0,
 		);
 
+	my $hooks = delete $args{hooks} // {};
+
 	my %opts = ( %defaults, %args );
 
 	my $p = bless {
@@ -26,6 +28,33 @@ sub new ( $class, %args ) {
 		stack    => $opts{stack_class}->new,
 		verbose  => $opts{verbose},
 		}, $class;
+
+	$p->_set_hooks( $hooks );
+
+	$SIG{INT} = sub {
+		warn( "Caught SIGINT. Stopping.\n" );
+		$p->stop;
+		};
+
+	return $p;
+	}
+
+sub _set_hooks ( $p, $hash ) {
+	state %default_hooks = (
+		pre_parse    => sub ( $program ) { $program },
+		post_parse   => sub ( $program ) { return },
+
+		pre_run      => sub ( $p ) { return },
+		post_run     => sub ( $p ) { return },
+
+		pre_command  => sub ( $invocant, $command ) { return },
+		post_command => sub ( $invocant, $command ) { return },
+		);
+
+	my %hooks = ( %default_hooks, $hash->%* );
+	# XXX check hooks
+
+	$p->{hooks} = \%hooks;
 	}
 
 sub _stack ( $p ) { $p->{stack} }
@@ -34,7 +63,6 @@ sub exit ( $p, $code = 0 ) {
 	$p->verbose( "Exiting" );
 	$p->verbose( $p->_stack->dump );
 	}
-
 
 sub fh       ( $p ) { $p->{fh}       }
 sub err_fh   ( $p ) { $p->{err_fh}   }
@@ -126,15 +154,21 @@ sub run_command ( $p, $command ) {
 		else { sub { die "Unrecognized command <$command> at position <" . $p->{cursor} . ">\n" } }
 		};
 
+	$p->pre_command( $arg, $code );
 	$code->( $arg );
+	$p->post_command( $arg, $code );
+
 	$p->verbose( "After command <$command>:" . $p->_stack->dump );
 	}
 
 sub run_program ( $class, $program, @opts ) {
 	my $p = $class->new( @opts );
 
+	$program = $p->pre_parse( $program );
 	$p->{program} = $p->parse( $program );
+	$p->post_parse;
 
+	$p->pre_run;
 	while(1) {
 		last if $p->{stop};
 		my $current_command = $p->current_command;
@@ -143,6 +177,7 @@ sub run_program ( $class, $program, @opts ) {
 		$p->run_command( $current_command );
 		$p->{cursor}++;
 		}
+	$p->post_run;
 	}
 
 sub show_program ( $p ) {
@@ -158,5 +193,96 @@ sub verbose ( $p, $message ) {
 	$message =~ s/^/!!! /gm;
 	say { $p->err_fh } $message
 	}
+
+=head2 Hooks
+
+=over 4
+
+=item * hooks
+
+Returns a hash reference of all the hooks.
+
+=cut
+
+sub hooks ( $p ) { my %h = $p->{hooks}->%*; \%h }
+
+=item * pre_command( RUNNER, INVOCANT, CODE_REF )
+
+Run the pre-command hook once the command is selected. The arguments
+are the invocant for the command (either the program runner or the
+stack) and the code reference it will run.
+
+=cut
+
+sub pre_command ( $p, $invocant, $code_ref ) {
+	return unless $p->hooks->{pre_command};
+	$p->hooks->{pre_command}->( $invocant, $code_ref );
+	}
+
+=item * pre_parse
+
+Runs the pre-parse hook, passing passing the input program as is. The
+result of C<pre_parse> replaces the input program.
+
+The default simply returns its argument.
+
+=cut
+
+sub pre_parse ( $p, $program ) {
+	return unless $p->hooks->{pre_parse};
+	$p->hooks->{pre_parse}->( $program );
+	}
+
+=item * pre_run
+
+Runs the pre-run hook a
+
+=cut
+
+sub pre_run ( $p ) {
+	return unless $p->hooks->{pre_run};
+	$p->hooks->{pre_run}->( $p );
+	}
+
+=item * post_command( RUNNER, INVOCANT, COMMAND )
+
+Runs after a command has done its work. It takes as arguments the object
+that handles the command and the command.
+
+=cut
+
+sub post_command ( $p, $invocant, $command ) {
+	return unless $p->hooks->{post_command};
+	$p->hooks->{post_command}->( $invocant, $command );
+	}
+
+=item * post_parse( RUNNER, PROGRAM )
+
+Runs the pre-run hook passing the parsed program as its argument,
+right before the parsed program starts to run.
+
+The default does nothing.
+
+=cut
+
+sub post_parse ( $p ) {
+	return unless $p->hooks->{post_parse};
+	$p->hooks->{post_parse}->( $p->{program} );
+	}
+
+=item * post_run( RUNNER )
+
+Runs after the program stops.
+
+=cut
+
+sub post_run ( $p ) {
+	return unless $p->hooks->{post_run};
+	$p->hooks->{post_run}->( $p );
+	}
+
+=back
+
+=cut
 
 1;
