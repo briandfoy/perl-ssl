@@ -89,6 +89,7 @@ sub is_verbose ( $p ) { $p->{verbose} }
 sub output( $p, @args ) { print { $p->fh } @args }
 
 sub parse ( $self, $string ) {
+	$string = lc($string);
 	if( $string =~ /([^a-z])/ ) {
 		my $pos = pos($string);
 		warn "Illegal character <$1> at position <$pos>\n";
