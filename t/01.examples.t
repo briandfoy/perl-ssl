@@ -14,6 +14,8 @@ subtest sanity => sub {
 my @programs = (
 	[ 'hello world', 'avdqvdmavvqmiqiiifvdlfbffiiiflblblfbqviiifbfiiifwdfwwiif', 'hello world' ],
 	[ 'factorial', 'hqdtmldubx', 24, 4 ],
+	[ 'box', 'jfffavvflflqvvvviifblflflfff', "ttt\nt t\nttt", 't' ],
+	[ 'SSL', 'avvvvvvvvvvvvvvvviiifvvvvvviiififwfwddfwfwwwddfvvvvvviiifwwwwifiifviiifwwwwwwdfvvvvifvviiifwddfvvvdfwwwwfvifddf', 'StupidStackLanguage' ],
 	);
 
 foreach my $program ( @programs ) {
