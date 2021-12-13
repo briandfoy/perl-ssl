@@ -47,8 +47,8 @@ sub _set_hooks ( $p, $hash ) {
 		pre_run      => sub ( $p ) { return },
 		post_run     => sub ( $p ) { return },
 
-		pre_command  => sub ( $invocant, $command ) { return },
-		post_command => sub ( $invocant, $command ) { return },
+		pre_command  => sub ( $invocant, $command, $pos ) { return },
+		post_command => sub ( $invocant, $command, $pos ) { return },
 		);
 
 	my %hooks = ( %default_hooks, $hash->%* );
@@ -154,9 +154,9 @@ sub run_command ( $p, $command ) {
 		else { sub { die "Unrecognized command <$command> at position <" . $p->{cursor} . ">\n" } }
 		};
 
-	$p->pre_command( $arg, $code );
+	$p->pre_command( $arg, $command );
 	$code->( $arg );
-	$p->post_command( $arg, $code );
+	$p->post_command( $arg, $command );
 
 	$p->verbose( "After command <$command>:" . $p->_stack->dump );
 	}
@@ -214,9 +214,9 @@ stack) and the code reference it will run.
 
 =cut
 
-sub pre_command ( $p, $invocant, $code_ref ) {
+sub pre_command ( $p, $invocant, $command ) {
 	return unless $p->hooks->{pre_command};
-	$p->hooks->{pre_command}->( $invocant, $code_ref );
+	$p->hooks->{pre_command}->( $invocant, $command, $p->{cursor} );
 	}
 
 =item * pre_parse
@@ -253,7 +253,7 @@ that handles the command and the command.
 
 sub post_command ( $p, $invocant, $command ) {
 	return unless $p->hooks->{post_command};
-	$p->hooks->{post_command}->( $invocant, $command );
+	$p->hooks->{post_command}->( $invocant, $command, $p->{cursor} );
 	}
 
 =item * post_parse( RUNNER, PROGRAM )
