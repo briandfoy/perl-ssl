@@ -39,7 +39,10 @@ sub get_operations ( $self ) {
 			$s->push( $second, $first, $first % $second );
 			},
 
-		'g' => sub ( $s ) { $s->push( $s->pop + $s->pop ) },
+		'g' => sub ( $s ) {
+			my( $first, $second ) = map { $s->pop } 0 .. 1;
+			$s->push( $second, $first, $first + $second );
+			},
 
 		'i' => sub ( $s ) { $s->push( $s->pop + 1 ) },
 
