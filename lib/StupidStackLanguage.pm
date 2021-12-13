@@ -4,8 +4,6 @@ use experimental qw(signatures);
 
 use IO::Interactive qw(interactive);
 
-sub DESTROY { 1 }
-
 sub new ( $class, %args ) {
 	state $rc = require StupidStackLanguage::Stack;
 	state %defaults = (
@@ -42,14 +40,14 @@ sub err_fh   ( $p ) { $p->{err_fh}   }
 sub input_fh ( $p ) { $p->{input_fh} }
 
 sub getchr ( $p ) {
-#	print { interactive } "char> ";
+	print { interactive } "char> ";
 	chomp( my $answer = readline( $p->input_fh ) );
 	my( $char ) = $answer =~ /\A(.)/;
 	ord $char;
 	}
 
 sub getnum ( $p ) {
-#	print { interactive } "num> ";
+	print { interactive } "num> ";
 	chomp( my $answer = readline( $p->input_fh ) );
 	$answer + 0;
 	}
