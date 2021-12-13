@@ -3,4 +3,7 @@ use v5.34;
 
 use StupidStackLanguage;
 
-StupidStackLanguage->run_program( $ARGV[0] );
+StupidStackLanguage->run_program(
+	$ARGV[0],
+	verbose => $ENV{SSL_VERBOSE} // 0,
+	);
