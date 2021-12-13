@@ -17,7 +17,7 @@ sub clear ( $s )        { @$s = () }
 sub size  ( $s )        { scalar @$s }
 
 sub dump ( $s, $label = "Stack:" ) {
-	my $dump = "\n$label";
+	my $dump = "\n$label\n";
 	for( my $i = $s->size - 1; $i >= 0; $i-- ) {
 		$dump .= "  $i: $s->[$i]\n";
 		}

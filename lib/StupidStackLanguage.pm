@@ -114,7 +114,7 @@ sub run_command ( $p, $command ) {
 		};
 
 	$code->( $arg );
-	$p->verbose( $p->_stack->dump( "After command <$command>" ) );
+	$p->verbose( "After command <$command>:" . $p->_stack->dump );
 	}
 
 sub run_program ( $class, $program, @opts ) {
