@@ -12,6 +12,7 @@ sub new ( $class, %args ) {
 		output       => \*STDOUT,
 		error_output => \*STDERR,
 		verbose      => 0,
+		stop         => 0,
 		);
 
 	my %opts = ( %defaults, %args );
@@ -32,7 +33,6 @@ sub _stack ( $p ) { $p->{stack} }
 sub exit ( $p, $code = 0 ) {
 	$p->verbose( "Exiting" );
 	$p->verbose( $p->_stack->dump );
-	exit $code;
 	}
 
 sub fh       ( $p ) { $p->{fh}       }
@@ -80,7 +80,7 @@ sub get_operations ( $p ) {
 
 		'x' => sub ( $p ) { $p->output( $p->_stack->peek ) },
 		'y' => sub ( $p ) { $p->{stack} = StupidStackLanguage::Stack->new },
-		'z' => sub ( $p ) { $p->exit },
+		'z' => sub ( $p ) { $p->{cursor} = $p->_stack->size; $p->stop; }, # one past program
 		);
 	}
 
@@ -136,3 +136,4 @@ sub verbose ( $p, $message ) {
 	}
 
 1;
+sub stop ( $p ) { $p->{stop} = 1 }
